@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Projets & Idées</title>
+    
+    <!-- PWA Meta tags -->
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Projets Manager">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @media (max-width: 640px) {
+            .mobile-padding { padding: 0.5rem; }
+            .mobile-text { font-size: 0.875rem; }
+        }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app" class="min-h-screen">
+        <div class="max-w-6xl mx-auto p-4">
+            <!-- Header -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Gestionnaire de Projets & Idées</h1>
+                    <div class="flex space-x-2">
+                        <button id="exportBtn" class="text-gray-500 hover:text-gray-700 p-2" title="Exporter les données">
+                            📤
+                        </button>
+                        <button id="importBtn" class="text-gray-500 hover:text-gray-700 p-2" title="Importer les données">
+                            📥
+                        </button>
+                        <button id="settingsBtn" class="text-gray-500 hover:text-gray-700 p-2" title="Paramètres">
+                            ⚙️
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Modal Import -->
+                <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+                    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                        <h3 class="text-lg font-bold mb-4">Importer les données</h3>
+                        <div class="mb-4">
+                            <p class="text-sm text-gray-600 mb-3">
+                                ⚠️ <strong>Attention :</strong> L'import remplacera toutes vos données actuelles. Exportez d'abord si vous voulez les conserver.
+                            </p>
+                            <input type="file" id="importFileInput" accept=".json" class="w-full p-2 border rounded-md">
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="confirmImportBtn" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                Importer
+                            </button>
+                            <button id="cancelImportBtn" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                                Annuler
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Paramètres de notifications -->
+                <div id="notificationSettings" class="mb-4 p-4 bg-gray-50 rounded-lg hidden">
+                    <h3 class="font-medium text-gray-900 mb-3">Paramètres des rappels</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Rappels projets</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="project1h" class="mr-2">
+                                    <span class="text-sm">1 heure avant</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="project1d" checked class="mr-2">
+                                    <span class="text-sm">1 jour avant</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="project1w" checked class="mr-2">
+                                    <span class="text-sm">1 semaine avant</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Rappels actions</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="action1h" checked class="mr-2">
+                                    <span class="text-sm">1 heure avant</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="action1d" checked class="mr-2">
+                                    <span class="text-sm">1 jour avant</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="action1w" class="mr-2">
+                                    <span class="text-sm">1 semaine avant</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Notifications -->
+                <div id="notifications" class="mb-4 hidden">
+                    <h3 class="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                        🔔 Rappels (<span id="notifCount">0</span>)
+                    </h3>
+                    <div id="notificationList" class="space-y-2">
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex space-x-4">
+                    <button id="projectsTab" class="px-4 py-2 rounded-md flex items-center space-x-2 bg-blue-100 text-blue-700">
+                        📁 <span>Projets (<span id="projectCount">0</span>)</span>
+                    </button>
+                    <button id="ideasTab" class="px-4 py-2 rounded-md flex items-center space-x-2 text-gray-600 hover:text-gray-900">
+                        💡 <span>Idées (<span id="ideaCount">0</span>)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Barre de recherche et filtres -->
+            <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+                <div class="flex flex-col gap-4">
+                    <div class="flex-1">
+                        <div class="relative">
+                            <span class="absolute left-3 top-3 text-gray-400">🔍</span>
+                            <input
+                                type="text"
+                                id="searchInput"
+                                placeholder="Rechercher..."
+                                class="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+                    </div>
+                    <button id="filtersBtn" class="px-4 py-2 border rounded-md flex items-center justify-center space-x-2 hover:bg-gray-50">
+                        📂 <span>Filtres</span>
+                    </button>
+                </div>
+
+                <div id="filters" class="mt-4 pt-4 border-t grid grid-cols-1 gap-4 hidden">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                        <select id="categoryFilter" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Toutes les catégories</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                        <select id="statusFilter" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Tous les statuts</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Button -->
+            <div class="mb-6">
+                <button id="addBtn" class="w-full sm:w-auto bg-blue-600 text-white px-4 py-3 rounded-md flex items-center justify-center space-x-2 hover:bg-blue-700">
+                    ➕ <span id="addBtnText">Nouveau projet</span>
+                </button>
+            </div>
+
+            <!-- Add/Edit Form -->
+            <div id="addForm" class="bg-white rounded-lg shadow-sm p-6 mb-6 hidden">
+                <h3 id="formTitle" class="text-lg font-medium mb-4">Ajouter un projet</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+                        <input type="text" id="itemTitle" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nom du projet">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                        <div class="flex space-x-2">
+                            <select id="itemCategory" class="flex-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Sélectionner une catégorie</option>
+                                <option value="Personnel">Personnel</option>
+                                <option value="Travail">Travail</option>
+                                <option value="Formation">Formation</option>
+                                <option value="Santé">Santé</option>
+                            </select>
+                            <input type="text" id="newCategory" placeholder="Nouvelle catégorie" class="w-32 p-2 border rounded-md text-sm">
+                            <button id="addCategoryBtn" type="button" class="px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">+</button>
+                        </div>
+                    </div>
+                    
+                    <div id="dueDateField">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Délai d'exécution</label>
+                        <input type="date" id="itemDueDate" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div id="statusField">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                        <select id="itemStatus" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="en_cours">En cours</option>
+                            <option value="suspendu">Suspendu</option>
+                            <option value="termine">Terminé</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea id="itemDescription" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" rows="3" placeholder="Description détaillée..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                        <div id="tagsList" class="flex flex-wrap gap-2 mb-2"></div>
+                        <div class="flex space-x-2">
+                            <input type="text" id="newTag" placeholder="Ajouter un tag..." class="flex-1 p-2 border rounded-md text-sm">
+                            <button id="addTagBtn" type="button" class="px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">Ajouter</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4">
+                    <button id="saveBtn" class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Ajouter</button>
+                    <button id="cancelBtn" class="w-full sm:w-auto bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">Annuler</button>
+                </div>
+            </div>
+
+            <!-- Items List -->
+            <div id="itemsList" class="space-y-4">
+                <!-- Les éléments seront ajoutés ici dynamiquement -->
+            </div>
+
+            <!-- Empty state -->
+            <div id="emptyState" class="text-center py-12 text-gray-500">
+                <div class="mb-4">
+                    <span id="emptyIcon" class="text-6xl">📁</span>
+                </div>
+                <p id="emptyText">Aucun projet pour le moment.</p>
+                <p class="text-sm">Cliquez sur "Nouveau projet" pour commencer.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // État global de l'application
+        let appState = {
+            projects: [],
+            ideas: [],
+            activeTab: 'projects',
+            currentTags: [],
+            editingId: null,
+            categories: ['Personnel', 'Travail', 'Formation', 'Santé']
+        };
+
+        // Sauvegarde et chargement des données
+        function saveData() {
+            localStorage.setItem('projectManager', JSON.stringify({
+                ...appState,
+                lastSaved: new Date().toISOString()
+            }));
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('projectManager');
+            if (saved) {
+                const data = JSON.parse(saved);
+                appState = { ...appState, ...data };
+            }
+        }
+
+        // Utilitaires
+        function getStatusColor(status) {
+            const colors = {
+                'termine': 'text-green-600 bg-green-50',
+                'en_cours': 'text-blue-600 bg-blue-50',
+                'suspendu': 'text-orange-600 bg-orange-50',
+                'a_oublier': 'text-gray-600 bg-gray-50',
+                'a_faire': 'text-purple-600 bg-purple-50',
+                'realise': 'text-green-600 bg-green-50'
+            };
+            return colors[status] || 'text-gray-600 bg-gray-50';
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'termine': 'Terminé',
+                'en_cours': 'En cours',
+                'suspendu': 'Suspendu',
+                'a_oublier': 'À oublier',
+                'a_faire': 'À faire',
+                'realise': 'Réalisé'
+            };
+            return labels[status] || status;
+        }
+
+        function getStatusIcon(status) {
+            const icons = {
+                'termine': '✅',
+                'en_cours': '▶️',
+                'suspendu': '⏸️',
+                'a_oublier': '❌',
+                'a_faire': '📋',
+                'realise': '✅'
+            };
+            return icons[status] || '⭕';
+        }
+
+        // Gestion des onglets
+        function switchTab(tab) {
+            appState.activeTab = tab;
+            
+            // Mise à jour de l'interface des onglets
+            document.getElementById('projectsTab').className = tab === 'projects' 
+                ? 'px-4 py-2 rounded-md flex items-center space-x-2 bg-blue-100 text-blue-700'
+                : 'px-4 py-2 rounded-md flex items-center space-x-2 text-gray-600 hover:text-gray-900';
+            
+            document.getElementById('ideasTab').className = tab === 'ideas' 
+                ? 'px-4 py-2 rounded-md flex items-center space-x-2 bg-blue-100 text-blue-700'
+                : 'px-4 py-2 rounded-md flex items-center space-x-2 text-gray-600 hover:text-gray-900';
+
+            // Mise à jour du bouton d'ajout
+            document.getElementById('addBtnText').textContent = tab === 'projects' ? 'Nouveau projet' : 'Nouvelle idée';
+            
+            // Mise à jour de l'icône vide
+            document.getElementById('emptyIcon').textContent = tab === 'projects' ? '📁' : '💡';
+            document.getElementById('emptyText').textContent = `Aucun${tab === 'projects' ? ' projet' : 'e idée'} pour le moment.`;
+
+            // Mise à jour des options de statut
+            updateStatusOptions();
+            
+            // Réaffichage des éléments
+            renderItems();
+        }
+
+        function updateStatusOptions() {
+            const statusFilter = document.getElementById('statusFilter');
+            const itemStatus = document.getElementById('itemStatus');
+            
+            // Vider les options
+            statusFilter.innerHTML = '<option value="">Tous les statuts</option>';
+            itemStatus.innerHTML = '';
+            
+            if (appState.activeTab === 'projects') {
+                statusFilter.innerHTML += `
+                    <option value="en_cours">En cours</option>
+                    <option value="suspendu">Suspendu</option>
+                    <option value="termine">Terminé</option>
+                `;
+                itemStatus.innerHTML = `
+                    <option value="en_cours">En cours</option>
+                    <option value="suspendu">Suspendu</option>
+                    <option value="termine">Terminé</option>
+                `;
+            } else {
+                statusFilter.innerHTML += `
+                    <option value="a_faire">À faire</option>
+                    <option value="en_cours">En cours</option>
+                    <option value="realise">Réalisé</option>
+                    <option value="a_oublier">À oublier</option>
+                `;
+                itemStatus.innerHTML = `
+                    <option value="a_faire">À faire</option>
+                    <option value="en_cours">En cours</option>
+                    <option value="realise">Réalisé</option>
+                    <option value="a_oublier">À oublier</option>
+                `;
+            }
+        }
+
+        // Gestion des formulaires
+        function showForm(editing = false) {
+            document.getElementById('addForm').classList.remove('hidden');
+            document.getElementById('formTitle').textContent = editing 
+                ? `Modifier ${appState.activeTab === 'projects' ? 'le projet' : 'l\'idée'}`
+                : `Ajouter ${appState.activeTab === 'projects' ? 'un projet' : 'une idée'}`;
+            
+            document.getElementById('saveBtn').textContent = editing ? 'Sauvegarder' : 'Ajouter';
+            
+            // Afficher/masquer les champs selon le type
+            if (appState.activeTab === 'projects') {
+                document.getElementById('dueDateField').style.display = 'block';
+                document.getElementById('statusField').style.display = 'block';
+            } else {
+                document.getElementById('dueDateField').style.display = 'none';
+                document.getElementById('statusField').style.display = 'block';
+            }
+        }
+
+        function hideForm() {
+            document.getElementById('addForm').classList.add('hidden');
+            clearForm();
+        }
+
+        function clearForm() {
+            document.getElementById('itemTitle').value = '';
+            document.getElementById('itemCategory').value = '';
+            document.getElementById('itemDueDate').value = '';
+            document.getElementById('itemStatus').value = appState.activeTab === 'projects' ? 'en_cours' : 'a_faire';
+            document.getElementById('itemDescription').value = '';
+            appState.currentTags = [];
+            appState.editingId = null;
+            renderTags();
+        }
+
+        // Gestion des tags
+        function addTag() {
+            const tagInput = document.getElementById('newTag');
+            const tag = tagInput.value.trim();
+            if (tag && !appState.currentTags.includes(tag)) {
+                appState.currentTags.push(tag);
+                tagInput.value = '';
+                renderTags();
+            }
+        }
+
+        function removeTag(tag) {
+            appState.currentTags = appState.currentTags.filter(t => t !== tag);
+            renderTags();
+        }
+
+        function renderTags() {
+            const tagsList = document.getElementById('tagsList');
+            tagsList.innerHTML = appState.currentTags.map(tag => `
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                    🏷️ ${tag}
+                    <button onclick="removeTag('${tag}')" class="ml-1 text-blue-600 hover:text-blue-800">×</button>
+                </span>
+            `).join('');
+        }
+
+        // Ajout de catégorie
+        function addCategory() {
+            const categoryInput = document.getElementById('newCategory');
+            const category = categoryInput.value.trim();
+            if (category && !appState.categories.includes(category)) {
+                appState.categories.push(category);
+                categoryInput.value = '';
+                updateCategoryOptions();
+                saveData();
+            }
+        }
+
+        function updateCategoryOptions() {
+            const categoryFilter = document.getElementById('categoryFilter');
+            const itemCategory = document.getElementById('itemCategory');
+            
+            // Sauvegarder les valeurs actuelles
+            const filterValue = categoryFilter.value;
+            const itemValue = itemCategory.value;
+            
+            // Mettre à jour les options
+            const categoryOptions = appState.categories.map(cat => 
+                `<option value="${cat}">${cat}</option>`
+            ).join('');
+            
+            categoryFilter.innerHTML = '<option value="">Toutes les catégories</option>' + categoryOptions;
+            itemCategory.innerHTML = '<option value="">Sélectionner une catégorie</option>' + categoryOptions;
+            
+            // Restaurer les valeurs
+            categoryFilter.value = filterValue;
+            itemCategory.value = itemValue;
+        }
+
+        // CRUD des éléments
+        function addItem() {
+            const title = document.getElementById('itemTitle').value.trim();
+            if (!title) return;
+
+            const newItem = {
+                id: Date.now(),
+                title: title,
+                description: document.getElementById('itemDescription').value,
+                category: document.getElementById('itemCategory').value,
+                dueDate: document.getElementById('itemDueDate').value,
+                status: document.getElementById('itemStatus').value,
+                tags: [...appState.currentTags],
+                createdAt: new Date().toISOString(),
+                currentAction: null,
+                history: [{
+                    date: new Date().toISOString(),
+                    action: `${appState.activeTab === 'projects' ? 'Projet' : 'Idée'} créé(e)`,
+                    description: `${appState.activeTab === 'projects' ? 'Projet' : 'Idée'} "${title}" créé(e)`
+                }]
+            };
+
+            if (appState.editingId) {
+                // Modification
+                const items = appState.activeTab === 'projects' ? appState.projects : appState.ideas;
+                const index = items.findIndex(item => item.id === appState.editingId);
+                if (index !== -1) {
+                    items[index] = { ...items[index], ...newItem, id: appState.editingId };
+                }
+            } else {
+                // Ajout
+                if (appState.activeTab === 'projects') {
+                    appState.projects.push(newItem);
+                } else {
+                    appState.ideas.push(newItem);
+                }
+            }
+
+            saveData();
+            hideForm();
+            renderItems();
+            updateCounts();
+        }
+
+        function editItem(id) {
+            const items = appState.activeTab === 'projects' ? appState.projects : appState.ideas;
+            const item = items.find(i => i.id === id);
+            if (!item) return;
+
+            appState.editingId = id;
+            appState.currentTags = [...(item.tags || [])];
+
+            document.getElementById('itemTitle').value = item.title;
+            document.getElementById('itemDescription').value = item.description || '';
+            document.getElementById('itemCategory').value = item.category || '';
+            document.getElementById('itemDueDate').value = item.dueDate || '';
+            document.getElementById('itemStatus').value = item.status;
+
+            renderTags();
+            showForm(true);
+        }
+
+        function deleteItem(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')) {
+                if (appState.activeTab === 'projects') {
+                    appState.projects = appState.projects.filter(p => p.id !== id);
+                } else {
+                    appState.ideas = appState.ideas.filter(i => i.id !== id);
+                }
+                saveData();
+                renderItems();
+                updateCounts();
+            }
+        }
+
+        // Actions sur les projets
+        function addActionToProject(projectId) {
+            const actionText = prompt('Quelle action voulez-vous ajouter ?');
+            if (!actionText) return;
+
+            const actionDueDate = prompt('Date d\'échéance (YYYY-MM-DD) - optionnel :') || '';
+
+            const project = appState.projects.find(p => p.id === projectId);
+            if (project) {
+                project.currentAction = {
+                    text: actionText,
+                    dueDate: actionDueDate,
+                    createdAt: new Date().toISOString()
+                };
+                
+                project.history = project.history || [];
+                project.history.push({
+                    date: new Date().toISOString(),
+                    action: 'Action ajoutée',
+                    description: `Nouvelle action: "${actionText}"${actionDueDate ? ` - Échéance: ${new Date(actionDueDate).toLocaleDateString()}` : ''}`
+                });
+
+                saveData();
+                renderItems();
+            }
+        }
+
+        function completeAction(projectId) {
+            const project = appState.projects.find(p => p.id === projectId);
+            if (project && project.currentAction) {
+                project.history = project.history || [];
+                project.history.push({
+                    date: new Date().toISOString(),
+                    action: 'Action terminée',
+                    description: `Action réalisée: "${project.currentAction.text}"`
+                });
+                
+                project.currentAction = null;
+                saveData();
+                renderItems();
+            }
+        }
+
+        // Affichage des éléments
+        function renderItems() {
+            const items = appState.activeTab === 'projects' ? appState.projects : appState.ideas;
+            const filteredItems = filterItems(items);
+            const itemsList = document.getElementById('itemsList');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filteredItems.length === 0) {
+                itemsList.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            itemsList.innerHTML = filteredItems.map(item => `
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-gray-900">${item.title}</h3>
+                            ${item.description ? `<p class="text-gray-600 mt-1">${item.description}</p>` : ''}
+                        </div>
+                        <div class="flex space-x-2 ml-4">
+                            <button onclick="editItem(${item.id})" class="text-gray-500 hover:text-blue-600 p-1">✏️</button>
+                            <button onclick="toggleHistory(${item.id})" class="text-gray-500 hover:text-green-600 p-1">📜</button>
+                            <button onclick="deleteItem(${item.id})" class="text-gray-500 hover:text-red-600 p-1">🗑️</button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 mb-3">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}">
+                            ${getStatusIcon(item.status)} ${getStatusLabel(item.status)}
+                        </span>
+                        
+                        ${item.category ? `
+                            <span class="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                📁 ${item.category}
+                            </span>
+                        ` : ''}
+                        
+                        ${item.tags && item.tags.length > 0 ? item.tags.map(tag => `
+                            <span class="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
+                                🏷️ ${tag}
+                            </span>
+                        `).join('') : ''}
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3 mb-3 text-sm text-gray-500">
+                        ${appState.activeTab === 'projects' && item.dueDate ? `
+                            <div class="flex items-center">
+                                📅 Délai: ${new Date(item.dueDate).toLocaleDateString()}
+                            </div>
+                        ` : ''}
+                        
+                        <div class="flex items-center">
+                            🕒 Créé le ${new Date(item.createdAt).toLocaleDateString()}
+                        </div>
+                    </div>
+
+                    ${appState.activeTab === 'projects' && item.currentAction ? `
+                        <div class="bg-blue-50 p-3 rounded-md mb-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    🎯 <span class="text-sm font-medium text-blue-900 ml-2">Action en cours:</span>
+                                </div>
+                                <button onclick="completeAction(${item.id})" class="text-green-600 hover:text-green-800 p-1" title="Marquer cette action comme terminée">
+                                    ✅
+                                </button>
+                            </div>
+                            <p class="text-blue-800 ml-6 mt-1">${item.currentAction.text}</p>
+                            ${item.currentAction.dueDate ? `
+                                <div class="text-xs text-blue-
